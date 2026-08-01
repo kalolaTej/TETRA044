@@ -73,4 +73,71 @@ const createDetection = async (req, res) => {
   }
 };
 
-module.exports = { createDetection };
+const getDetections = async (req, res) => {
+  try {
+    const { camera_id, animal, limit: queryLimit, page: queryPage } = req.query;
+
+    const page = parseInt(queryPage, 10) > 0 ? parseInt(queryPage, 10) : 1;
+    const limit = parseInt(queryLimit, 10) > 0 ? Math.min(parseInt(queryLimit, 10), 100) : 20;
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+
+    let query = supabase
+      .from('detections')
+      .select('*', { count: 'exact' });
+
+    if (camera_id) {
+      query = query.eq('camera_id', camera_id);
+    }
+
+    if (animal) {
+      query = query.eq('animal', animal.toLowerCase());
+    }
+
+    query = query.order('detected_at', { ascending: false }).range(from, to);
+
+    const { data, error, count } = await query;
+
+    if (error) {
+      return res.status(500).json({ error: error.message });
+    }
+
+    return res.status(200).json({
+      data: data || [],
+      pagination: {
+        page,
+        limit,
+        total: count || 0,
+        totalPages: count ? Math.ceil(count / limit) : 0,
+      },
+    });
+  } catch (err) {
+    return res.status(500).json({ error: `failed to fetch detections: ${err.message}` });
+  }
+};
+
+const getDetectionById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const { data, error } = await supabase
+      .from('detections')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error || !data) {
+      return res.status(404).json({ error: 'detection not found' });
+    }
+
+    return res.status(200).json({ data });
+  } catch (err) {
+    return res.status(500).json({ error: `failed to fetch detection: ${err.message}` });
+  }
+};
+
+module.exports = {
+  createDetection,
+  getDetections,
+  getDetectionById,
+};

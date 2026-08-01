@@ -6,6 +6,8 @@ dotenv.config();
 
 const authRoutes = require('./routes/auth');
 const detectionRoutes = require('./routes/detections');
+const cameraRoutes = require('./routes/cameras');
+const farmRoutes = require('./routes/farms');
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -23,6 +25,8 @@ app.use((req, res, next) => {
 // api routes
 app.use('/api', authRoutes);
 app.use('/api', detectionRoutes);
+app.use('/api', cameraRoutes);
+app.use('/api', farmRoutes);
 
 // health check endpoint
 app.get('/health', (req, res) => {
