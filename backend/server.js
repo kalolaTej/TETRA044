@@ -4,6 +4,9 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
+const authRoutes = require('./routes/auth');
+const detectionRoutes = require('./routes/detections');
+
 const app = express();
 const port = process.env.PORT || 5000;
 
@@ -16,6 +19,10 @@ app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
   next();
 });
+
+// api routes
+app.use('/api', authRoutes);
+app.use('/api', detectionRoutes);
 
 // health check endpoint
 app.get('/health', (req, res) => {
