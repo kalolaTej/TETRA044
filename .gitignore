@@ -33,15 +33,12 @@ venv/
 ENV/
 .pytest_cache/
 
-# flutter and dart
-.dart_tool/
-.flutter-plugins
-.flutter-plugins-dependencies
-.packages
-.pub-cache/
-.pub/
-build/
-flutter_*.png
+# yolo model weights & output detections
+*.pt
+*.onnx
+*.engine
+ai/detections/*
+!ai/detections/.gitkeep
 
 # environment and secrets
 .env
