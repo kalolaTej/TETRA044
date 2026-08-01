@@ -45,6 +45,8 @@ def load_config():
     raw_animals = os.getenv("TARGET_ANIMALS", default_animals)
     target_animals = [a.strip().lower() for a in raw_animals.split(",") if a.strip()]
 
+    dry_run_env = os.getenv("DRY_RUN", "false").lower() in ("true", "1", "yes")
+
     return {
         "backend_url": os.getenv("BACKEND_URL", "http://localhost:5000"),
         "camera_source": parse_camera_source(raw_cam),
@@ -53,4 +55,5 @@ def load_config():
         "camera_id": os.getenv("CAMERA_ID", "cam_01"),
         "zone_name": os.getenv("ZONE_NAME", "north_field"),
         "target_animals": target_animals,
+        "dry_run": dry_run_env,
     }

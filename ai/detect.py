@@ -1,6 +1,7 @@
 import os
 import time
 import json
+import argparse
 from datetime import datetime
 import cv2
 import requests
@@ -16,7 +17,6 @@ def save_detection(config, frame, animal_name, conf, bbox, output_dir):
     
     cv2.imwrite(jpg_path, frame)
     
-    # store metadata sidecar for downstream api/database sync
     meta = {
         "timestamp": datetime.now().isoformat(),
         "camera_id": config["camera_id"],
@@ -30,10 +30,14 @@ def save_detection(config, frame, animal_name, conf, bbox, output_dir):
     with open(json_path, "w") as f:
         json.dump(meta, f, indent=2)
         
-    print(f"[detection] saved {animal_name} ({conf:.2f}) -> {jpg_path}")
+    print(f"[saved] snapshot saved -> {jpg_path}")
     return jpg_path
 
 def send_detection(config, jpg_path, animal_name, conf):
+    if config.get("dry_run", False):
+        print(f"[dry-run] skipped sending detection to backend (dry-run mode active)")
+        return True
+
     backend_url = config["backend_url"].rstrip("/")
     url = f"{backend_url}/api/detection"
     conf_pct = int(round(conf * 100))
@@ -57,13 +61,12 @@ def send_detection(config, jpg_path, animal_name, conf):
                 resp = requests.post(url, data=data, files=files, timeout=timeout_sec)
                 
             if resp.status_code in (200, 201):
-                print(f"[api] sent {animal_name} ({conf_pct}%) to backend: {resp.status_code} ok")
+                print(f"[sent successfully] posted {animal_name} ({conf_pct}%) to backend ok")
                 return True
             else:
                 print(f"[api warning] backend returned status {resp.status_code}: {resp.text[:100]}")
         except requests.RequestException as err:
             if attempt < max_retries:
-                # short backoff before retry
                 time.sleep(0.5 * attempt)
             else:
                 print(f"[api error] backend unreachable after {max_retries} attempts ({url}): {err}")
@@ -71,7 +74,23 @@ def send_detection(config, jpg_path, animal_name, conf):
     return False
 
 def main():
+    parser = argparse.ArgumentParser(description="realtime animal intrusion detector")
+    parser.add_argument("--source", help="override video source (webcam index, video file, or rtsp url)")
+    parser.add_argument("--dry-run", action="store_true", help="run detection without sending payloads to backend")
+    args = parser.parse_args()
+
     config = load_config()
+    
+    if args.source is not None:
+        source_val = args.source.strip()
+        if source_val.isdigit():
+            config["camera_source"] = int(source_val)
+        else:
+            config["camera_source"] = source_val
+            
+    if args.dry_run:
+        config["dry_run"] = True
+
     source = config["camera_source"]
     conf_thresh = config["confidence_threshold"]
     cooldown_sec = config["cooldown_seconds"]
@@ -81,24 +100,23 @@ def main():
     output_dir = os.path.join(os.path.dirname(__file__), "detections")
     os.makedirs(output_dir, exist_ok=True)
 
-    print("loading object detection model...")
+    print("[init] loading object detection model...")
     model = YOLO("yolo11s.pt")
 
-    print(f"opening camera source: {source}")
+    print(f"[source] opening camera source: {source}")
     cap = cv2.VideoCapture(source)
 
     if not cap.isOpened():
-        print(f"error: failed to open video source '{source}'")
+        print(f"[source error] failed to open video source '{source}'")
         return
 
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fps = cap.get(cv2.CAP_PROP_FPS)
-    print(f"connected: {width}x{height} @ {fps:.1f} fps")
+    print(f"[source opened] connected to stream: {width}x{height} @ {fps:.1f} fps")
 
     window_name = f"animal intrusion detection - {camera_id}"
     
-    # track last detection timestamp per (camera_id, animal) key
     last_seen = {}
     last_skip_log = {}
 
@@ -109,7 +127,7 @@ def main():
         while True:
             ret, frame = cap.read()
             if not ret:
-                print("warning: frame read failed or end of stream reached")
+                print("[stream] frame read failed or end of video stream reached")
                 break
 
             curr_time = time.time()
@@ -121,7 +139,6 @@ def main():
             results = model(frame, conf=conf_thresh, verbose=False)
             annotated_frame = results[0].plot()
 
-            # check for target animals and enforce per-(camera, animal) cooldown
             boxes = results[0].boxes
             if boxes is not None and len(boxes) > 0:
                 for box in boxes:
@@ -130,12 +147,12 @@ def main():
                     conf = float(box.conf[0])
                     
                     if class_name in target_animals and conf >= conf_thresh:
+                        print(f"[detection found] detected {class_name} ({conf*100:.1f}%) on {camera_id}")
                         key = (camera_id, class_name)
                         last_time = last_seen.get(key, 0)
                         elapsed = curr_time - last_time
                         
                         if elapsed < cooldown_sec:
-                            # log cooldown suppression once per second to prevent console spam
                             last_log = last_skip_log.get(key, 0)
                             if curr_time - last_log >= 1.0:
                                 remaining = cooldown_sec - elapsed
@@ -162,12 +179,12 @@ def main():
             cv2.imshow(window_name, annotated_frame)
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
-                print("user quit preview")
+                print("[user] quit preview window")
                 break
     finally:
         cap.release()
         cv2.destroyAllWindows()
-        print("camera released and windows closed")
+        print("[cleanup] camera stream released and windows closed")
 
 if __name__ == "__main__":
     main()

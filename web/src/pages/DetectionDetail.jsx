@@ -55,7 +55,7 @@ export default function DetectionDetail() {
       const res = await fetch(`${backendUrl}/api/detections/${id}`, { headers })
       if (res.ok) {
         const data = await res.json()
-        setDetection(data.detection || data)
+        setDetection(data.data || data.detection || data)
       } else {
         const mockItem = MOCK_DETAIL_DETECTIONS[id] || MOCK_DETAIL_DETECTIONS['det_01']
         setDetection(mockItem)
@@ -187,7 +187,7 @@ export default function DetectionDetail() {
                   <Clock size={16} /> Timestamp:
                 </span>
                 <span className="font-bold text-stone-900 text-sm">
-                  {new Date(detection.created_at || Date.now()).toLocaleString()}
+                  {new Date(detection.detected_at || detection.created_at || Date.now()).toLocaleString()}
                 </span>
               </div>
             </div>

@@ -1,4 +1,5 @@
 const supabase = require('../services/supabaseClient');
+const { sendDetectionPush } = require('../services/firebase');
 
 const createDetection = async (req, res) => {
   try {
@@ -64,21 +65,86 @@ const createDetection = async (req, res) => {
       return res.status(500).json({ error: `database insertion failed: ${dbError.message}` });
     }
 
+    const newDetection = detectionData ? detectionData[0] : null;
+
+    if (newDetection) {
+      // note: supabase realtime (postgres change streams) is the primary broadcast mechanism when enabled
+      // on the 'detections' table in the supabase dashboard; socket.io acts as a fallback & live demo aid.
+      const io = req.app.get('io');
+      if (io) {
+        io.emit('new-detection', newDetection);
+        const connectedCount = io.sockets.sockets ? io.sockets.sockets.size : 0;
+        console.log(`[socket] broadcasted new detection to ${connectedCount} connected client(s)`);
+      }
+
+      // look up camera -> farm -> user to dispatch push notifications
+      dispatchPushNotifications(camera_id, newDetection);
+    }
+
     return res.status(201).json({
       success: true,
-      detection: detectionData ? detectionData[0] : null,
+      detection: newDetection,
     });
   } catch (err) {
     return res.status(500).json({ error: `detection ingestion error: ${err.message}` });
   }
 };
 
+// helper function to resolve user ownership and dispatch push notifications
+const dispatchPushNotifications = async (cameraId, detection) => {
+  try {
+    // resolve user_id via camera -> farm relation
+    const { data: cameraData } = await supabase
+      .from('cameras')
+      .select('id, farm_id, farms(user_id)')
+      .eq('id', cameraId)
+      .single();
+
+    const userId = cameraData && cameraData.farms ? cameraData.farms.user_id : null;
+    if (!userId) {
+      return;
+    }
+
+    // record notification entry in database
+    const title = 'Animal Intrusion Detected!';
+    const body = `A ${detection.animal} was detected with ${detection.confidence}% confidence.`;
+
+    await supabase.from('notifications').insert([
+      {
+        user_id: userId,
+        detection_id: detection.id,
+        title,
+        body,
+      },
+    ]);
+
+    // fetch registered fcm tokens for user
+    const { data: tokens } = await supabase
+      .from('fcm_tokens')
+      .select('token')
+      .eq('user_id', userId);
+
+    if (tokens && tokens.length > 0) {
+      for (const t of tokens) {
+        await sendDetectionPush(t.token, detection);
+      }
+    }
+  } catch (err) {
+    console.error(`[push error] failed to dispatch notifications: ${err.message}`);
+  }
+};
+
 const getDetections = async (req, res) => {
   try {
-    const { camera_id, animal, limit: queryLimit, page: queryPage } = req.query;
+    const { camera_id, camera, animal, limit: queryLimit, page: queryPage, offset: queryOffset } = req.query;
 
-    const page = parseInt(queryPage, 10) > 0 ? parseInt(queryPage, 10) : 1;
     const limit = parseInt(queryLimit, 10) > 0 ? Math.min(parseInt(queryLimit, 10), 100) : 20;
+    let page = 1;
+    if (queryPage) {
+      page = parseInt(queryPage, 10) > 0 ? parseInt(queryPage, 10) : 1;
+    } else if (queryOffset) {
+      page = Math.floor(parseInt(queryOffset, 10) / limit) + 1;
+    }
     const from = (page - 1) * limit;
     const to = from + limit - 1;
 
@@ -86,8 +152,9 @@ const getDetections = async (req, res) => {
       .from('detections')
       .select('*', { count: 'exact' });
 
-    if (camera_id) {
-      query = query.eq('camera_id', camera_id);
+    const targetCamera = camera_id || camera;
+    if (targetCamera) {
+      query = query.eq('camera_id', targetCamera);
     }
 
     if (animal) {

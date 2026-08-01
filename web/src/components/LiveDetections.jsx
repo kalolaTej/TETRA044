@@ -75,7 +75,7 @@ export default function LiveDetections() {
       const res = await fetch(`${backendUrl}/api/detections?limit=10`, { headers })
       if (res.ok) {
         const data = await res.json()
-        setDetections(data.detections || data)
+        setDetections(Array.isArray(data) ? data : (data.data || data.detections || []))
       } else {
         setDetections(MOCK_INITIAL_DETECTIONS)
       }

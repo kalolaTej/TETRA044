@@ -85,7 +85,7 @@ export default function Detections() {
       const res = await fetch(`${backendUrl}/api/detections?${queryParams}`, { headers })
       if (res.ok) {
         const data = await res.json()
-        const items = data.detections || data
+        const items = Array.isArray(data) ? data : (data.data || data.detections || [])
         setDetections((prev) => (page === 1 ? items : [...prev, ...items]))
         setHasMore(items.length >= limit)
       } else {
@@ -113,7 +113,7 @@ export default function Detections() {
     }
     if (dateRangeFilter === 'Today') {
       const today = new Date().toDateString()
-      return new Date(item.created_at).toDateString() === today
+      return new Date(item.detected_at || item.created_at || Date.now()).toDateString() === today
     }
     return true
   })
@@ -260,7 +260,7 @@ export default function Detections() {
                         </span>
                       </td>
                       <td className="p-4 text-stone-600 font-medium whitespace-nowrap text-xs">
-                        {new Date(item.created_at || Date.now()).toLocaleString([], {
+                        {new Date(item.detected_at || item.created_at || Date.now()).toLocaleString([], {
                           dateStyle: 'short',
                           timeStyle: 'short'
                         })}
