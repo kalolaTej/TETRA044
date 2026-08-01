@@ -1,0 +1,16 @@
+# deployment checklist:
+# 1. set SUPABASE_URL, SUPABASE_ANON_KEY, and SUPABASE_SERVICE_KEY in render dashboard
+# 2. configure CORS origins in server.js if frontend domain changes
+# 3. attach persistent logging service if required
+
+services:
+  - type: web
+    name: animal-intrusion-backend
+    env: node
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: PORT
+        value: 5000
+      - key: NODE_ENV
+        value: production

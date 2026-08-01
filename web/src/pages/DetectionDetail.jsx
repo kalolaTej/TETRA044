@@ -4,38 +4,7 @@ import { ArrowLeft, MapPin, Camera, Clock, ShieldAlert, Volume2, Check } from 'l
 import { useAuth } from '../context/AuthContext'
 import { getAnimalImage, ANIMAL_IMAGES } from '../lib/animalImages'
 
-const MOCK_DETAIL_DETECTIONS = {
-  det_01: {
-    id: 'det_01',
-    animal: 'cow',
-    confidence: 94,
-    camera_id: 'cam_01',
-    camera_name: 'North Field Cam',
-    zone: 'North Field',
-    created_at: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
-    image_url: ANIMAL_IMAGES.cow
-  },
-  det_02: {
-    id: 'det_02',
-    animal: 'dog',
-    confidence: 88,
-    camera_id: 'cam_02',
-    camera_name: 'South Perimeter',
-    zone: 'South Gate',
-    created_at: new Date(Date.now() - 14 * 60 * 1000).toISOString(),
-    image_url: ANIMAL_IMAGES.dog
-  },
-  det_03: {
-    id: 'det_03',
-    animal: 'bear',
-    confidence: 91,
-    camera_id: 'cam_01',
-    camera_name: 'North Field Cam',
-    zone: 'North Field',
-    created_at: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
-    image_url: ANIMAL_IMAGES.bear
-  }
-}
+const MOCK_DETAIL_DETECTIONS = {}
 
 export default function DetectionDetail() {
   const { id } = useParams()
@@ -55,14 +24,17 @@ export default function DetectionDetail() {
       const res = await fetch(`${backendUrl}/api/detections/${id}`, { headers })
       if (res.ok) {
         const data = await res.json()
-        setDetection(data.data || data.detection || data)
+        const item = data.data || data.detection || data
+        if (item && item.id) {
+          setDetection(item)
+        } else {
+          setNotFound(true)
+        }
       } else {
-        const mockItem = MOCK_DETAIL_DETECTIONS[id] || MOCK_DETAIL_DETECTIONS['det_01']
-        setDetection(mockItem)
+        setNotFound(true)
       }
     } catch {
-      const mockItem = MOCK_DETAIL_DETECTIONS[id] || MOCK_DETAIL_DETECTIONS['det_01']
-      setDetection(mockItem)
+      setNotFound(true)
     } finally {
       setLoading(false)
     }

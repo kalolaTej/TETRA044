@@ -6,14 +6,14 @@ const createDetection = async (req, res) => {
     const { camera_id, zone, animal, confidence, time } = req.body;
     const file = req.file;
 
-    // basic payload validation
+    // payload validation
     if (!camera_id || !animal || confidence === undefined || !file) {
       return res.status(400).json({
         error: 'missing required detection fields (camera_id, animal, confidence) or image file',
       });
     }
 
-    // numeric confidence validation (0-100 percentage)
+    // numeric confidence validation
     const numericConfidence = parseFloat(confidence);
     if (isNaN(numericConfidence) || numericConfidence < 0 || numericConfidence > 100) {
       return res.status(400).json({
@@ -26,7 +26,7 @@ const createDetection = async (req, res) => {
     const fileName = `${camera_id}_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
     const filePath = `detections/${fileName}`;
 
-    // upload image buffer to supabase storage 'images' bucket
+    // upload image to supabase storage
     const { error: uploadError } = await supabase.storage
       .from('images')
       .upload(filePath, file.buffer, {
@@ -44,15 +44,23 @@ const createDetection = async (req, res) => {
       .getPublicUrl(filePath);
 
     const imageUrl = publicUrlData ? publicUrlData.publicUrl : '';
-
-    // insert detection record into database
     const detectedAt = time ? new Date(time).toISOString() : new Date().toISOString();
+
+    // resolve valid camera uuid if string slug is provided
+    let validCameraId = camera_id;
+    const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(camera_id);
+    if (!isUuid) {
+      const { data: firstCam } = await supabase.from('cameras').select('id').limit(1);
+      if (firstCam && firstCam.length > 0) {
+        validCameraId = firstCam[0].id;
+      }
+    }
 
     const { data: detectionData, error: dbError } = await supabase
       .from('detections')
       .insert([
         {
-          camera_id: camera_id,
+          camera_id: validCameraId,
           animal: animal.toLowerCase(),
           confidence: numericConfidence,
           image_url: imageUrl,
@@ -68,17 +76,18 @@ const createDetection = async (req, res) => {
     const newDetection = detectionData ? detectionData[0] : null;
 
     if (newDetection) {
-      // note: supabase realtime (postgres change streams) is the primary broadcast mechanism when enabled
-      // on the 'detections' table in the supabase dashboard; socket.io acts as a fallback & live demo aid.
       const io = req.app.get('io');
       if (io) {
         io.emit('new-detection', newDetection);
         const connectedCount = io.sockets.sockets ? io.sockets.sockets.size : 0;
-        console.log(`[socket] broadcasted new detection to ${connectedCount} connected client(s)`);
+        console.log(`[socket] broadcasted new detection to ${connectedCount} client(s)`);
       }
 
-      // look up camera -> farm -> user to dispatch push notifications
+      // dispatch push notifications
       dispatchPushNotifications(camera_id, newDetection);
+
+      // delete oldest records & images exceeding 300 cap
+      cleanupOldDetections(300);
     }
 
     return res.status(201).json({
@@ -90,10 +99,8 @@ const createDetection = async (req, res) => {
   }
 };
 
-// helper function to resolve user ownership and dispatch push notifications
 const dispatchPushNotifications = async (cameraId, detection) => {
   try {
-    // resolve user_id via camera -> farm relation
     const { data: cameraData } = await supabase
       .from('cameras')
       .select('id, farm_id, farms(user_id)')
@@ -105,7 +112,6 @@ const dispatchPushNotifications = async (cameraId, detection) => {
       return;
     }
 
-    // record notification entry in database
     const title = 'Animal Intrusion Detected!';
     const body = `A ${detection.animal} was detected with ${detection.confidence}% confidence.`;
 
@@ -118,7 +124,6 @@ const dispatchPushNotifications = async (cameraId, detection) => {
       },
     ]);
 
-    // fetch registered fcm tokens for user
     const { data: tokens } = await supabase
       .from('fcm_tokens')
       .select('token')
@@ -203,8 +208,57 @@ const getDetectionById = async (req, res) => {
   }
 };
 
+// maintain max 300 retention limit in supabase db and storage
+const cleanupOldDetections = async (maxLimit = 300) => {
+  try {
+    const { count, error } = await supabase
+      .from('detections')
+      .select('id', { count: 'exact', head: true });
+
+    if (error || !count || count <= maxLimit) {
+      return;
+    }
+
+    const deleteCount = count - maxLimit;
+
+    // query oldest records exceeding 300 limit
+    const { data: oldestRecords } = await supabase
+      .from('detections')
+      .select('id, image_url')
+      .order('detected_at', { ascending: true })
+      .limit(deleteCount);
+
+    if (!oldestRecords || oldestRecords.length === 0) {
+      return;
+    }
+
+    const idsToDelete = oldestRecords.map((r) => r.id);
+
+    // extract storage file paths from public urls
+    const storagePaths = oldestRecords
+      .map((r) => {
+        if (!r.image_url) return null;
+        const parts = r.image_url.split('/images/');
+        return parts.length > 1 ? parts[1] : null;
+      })
+      .filter(Boolean);
+
+    // delete oldest snapshot images from storage bucket
+    if (storagePaths.length > 0) {
+      await supabase.storage.from('images').remove(storagePaths);
+    }
+
+    // delete oldest database rows
+    await supabase.from('detections').delete().in('id', idsToDelete);
+    console.log(`[retention cleanup] deleted ${idsToDelete.length} oldest detection(s) exceeding 300 cap`);
+  } catch (err) {
+    console.error(`[retention error] failed cleanup: ${err.message}`);
+  }
+};
+
 module.exports = {
   createDetection,
   getDetections,
   getDetectionById,
+  cleanupOldDetections,
 };

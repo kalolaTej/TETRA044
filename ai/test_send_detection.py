@@ -64,7 +64,7 @@ def send_test_detection(args):
 
 def main():
     parser = argparse.ArgumentParser(description="end-to-end test script for animal detection ingestion")
-    parser.add_argument("--camera", default=os.getenv("CAMERA_ID", "cam_01"), help="camera id identifier")
+    parser.add_argument("--camera", default=os.getenv("CAMERA_ID", "ebe80084-70f8-4874-b3a9-b47f2f72f534"), help="camera id identifier")
     parser.add_argument("--zone", default=os.getenv("ZONE_NAME", "north_field"), help="zone name")
     parser.add_argument("--animal", default="cow", help="animal label")
     parser.add_argument("--confidence", type=int, default=95, help="confidence percentage 0-100")

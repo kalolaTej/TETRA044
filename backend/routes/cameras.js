@@ -1,15 +1,16 @@
 const express = require('express');
-const authMiddleware = require('../middleware/auth');
 const {
   getCameras,
   createCamera,
   updateCameraStatus,
+  updateCameraHeartbeat,
 } = require('../controllers/cameraController');
 
 const router = express.Router();
 
-router.get('/cameras', authMiddleware, getCameras);
-router.post('/cameras', authMiddleware, createCamera);
-router.patch('/cameras/:id/status', authMiddleware, updateCameraStatus);
+router.get('/cameras', getCameras);
+router.post('/cameras', createCamera);
+router.post('/cameras/heartbeat', updateCameraHeartbeat);
+router.patch('/cameras/:id/status', updateCameraStatus);
 
 module.exports = router;

@@ -4,58 +4,7 @@ import { Filter, Calendar, Camera, ChevronRight, RefreshCw } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { getAnimalImage, ANIMAL_IMAGES } from '../lib/animalImages'
 
-const MOCK_HISTORY_DETECTIONS = [
-  {
-    id: 'det_101',
-    animal: 'cow',
-    confidence: 95,
-    camera_id: 'cam_01',
-    camera_name: 'North Field Cam',
-    zone: 'North Field',
-    created_at: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
-    image_url: ANIMAL_IMAGES.cow
-  },
-  {
-    id: 'det_102',
-    animal: 'dog',
-    confidence: 89,
-    camera_id: 'cam_02',
-    camera_name: 'South Perimeter',
-    zone: 'South Gate',
-    created_at: new Date(Date.now() - 35 * 60 * 1000).toISOString(),
-    image_url: ANIMAL_IMAGES.dog
-  },
-  {
-    id: 'det_103',
-    animal: 'bear',
-    confidence: 92,
-    camera_id: 'cam_01',
-    camera_name: 'North Field Cam',
-    zone: 'North Field',
-    created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    image_url: ANIMAL_IMAGES.bear
-  },
-  {
-    id: 'det_104',
-    animal: 'pig',
-    confidence: 87,
-    camera_id: 'cam_03',
-    camera_name: 'East Livestock Barn',
-    zone: 'East Barn',
-    created_at: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-    image_url: ANIMAL_IMAGES.pig
-  },
-  {
-    id: 'det_105',
-    animal: 'horse',
-    confidence: 96,
-    camera_id: 'cam_02',
-    camera_name: 'South Perimeter',
-    zone: 'South Gate',
-    created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-    image_url: ANIMAL_IMAGES.horse
-  }
-]
+const MOCK_HISTORY_DETECTIONS = []
 
 export default function Detections() {
   const { session } = useAuth()
@@ -86,7 +35,8 @@ export default function Detections() {
       if (res.ok) {
         const data = await res.json()
         const items = Array.isArray(data) ? data : (data.data || data.detections || [])
-        setDetections((prev) => (page === 1 ? items : [...prev, ...items]))
+        const filtered = items.filter(d => d.confidence >= 80)
+        setDetections((prev) => (page === 1 ? filtered : [...prev, ...filtered]))
         setHasMore(items.length >= limit)
       } else {
         setDetections(MOCK_HISTORY_DETECTIONS)

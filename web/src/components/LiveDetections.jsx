@@ -5,38 +5,7 @@ import { supabase, isSupabaseConfigured } from '../lib/supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { getAnimalImage, ANIMAL_IMAGES } from '../lib/animalImages'
 
-const MOCK_INITIAL_DETECTIONS = [
-  {
-    id: 'det_01',
-    animal: 'cow',
-    confidence: 94,
-    camera_id: 'cam_01',
-    camera_name: 'North Field Cam',
-    zone: 'North Field',
-    created_at: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
-    image_url: ANIMAL_IMAGES.cow
-  },
-  {
-    id: 'det_02',
-    animal: 'dog',
-    confidence: 88,
-    camera_id: 'cam_02',
-    camera_name: 'South Perimeter',
-    zone: 'South Gate',
-    created_at: new Date(Date.now() - 14 * 60 * 1000).toISOString(),
-    image_url: ANIMAL_IMAGES.dog
-  },
-  {
-    id: 'det_03',
-    animal: 'bear',
-    confidence: 91,
-    camera_id: 'cam_01',
-    camera_name: 'North Field Cam',
-    zone: 'North Field',
-    created_at: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
-    image_url: ANIMAL_IMAGES.bear
-  }
-]
+const MOCK_INITIAL_DETECTIONS = []
 
 export default function LiveDetections() {
   const { session } = useAuth()
@@ -72,10 +41,11 @@ export default function LiveDetections() {
       if (session?.access_token) {
         headers['Authorization'] = `Bearer ${session.access_token}`
       }
-      const res = await fetch(`${backendUrl}/api/detections?limit=10`, { headers })
+      const res = await fetch(`${backendUrl}/api/detections?limit=20`, { headers })
       if (res.ok) {
         const data = await res.json()
-        setDetections(Array.isArray(data) ? data : (data.data || data.detections || []))
+        const all = Array.isArray(data) ? data : (data.data || data.detections || [])
+        setDetections(all.filter(d => d.confidence >= 80))
       } else {
         setDetections(MOCK_INITIAL_DETECTIONS)
       }
@@ -89,7 +59,14 @@ export default function LiveDetections() {
   useEffect(() => {
     fetchInitialDetections()
 
-    if (!isSupabaseConfigured) return
+    // 2-second polling to guarantee instant real-time feed updates
+    const interval = setInterval(() => {
+      fetchInitialDetections()
+    }, 2000)
+
+    if (!isSupabaseConfigured) {
+      return () => clearInterval(interval)
+    }
 
     const channel = supabase
       .channel('public:detections')
@@ -106,6 +83,7 @@ export default function LiveDetections() {
       .subscribe()
 
     return () => {
+      clearInterval(interval)
       supabase.removeChannel(channel)
     }
   }, [fetchInitialDetections])
@@ -196,7 +174,7 @@ export default function LiveDetections() {
                       </span>
                       <span className="flex items-center gap-1.5">
                         <Clock size={14} className="text-stone-500" />
-                        {new Date(item.created_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {new Date(item.detected_at || item.created_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
                   </div>

@@ -1,10 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom'
-import { LayoutDashboard, History, Camera, LogOut, ShieldAlert } from 'lucide-react'
-import { useAuth } from '../context/AuthContext'
+import { LayoutDashboard, History, Camera, ShieldAlert, Activity } from 'lucide-react'
 
 export default function DashboardLayout() {
-  const { user, logout } = useAuth()
-
   const navItems = [
     { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { label: 'Detection History', path: '/detections', icon: History },
@@ -26,17 +23,9 @@ export default function DashboardLayout() {
             </div>
           </div>
 
-          <div className="flex items-center gap-5 text-sm font-medium">
-            <span className="text-stone-700 font-medium bg-amber-100/60 px-3 py-1 rounded-md border border-amber-200/80 hidden sm:inline">
-              {user?.email}
-            </span>
-            <button
-              onClick={() => logout()}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-stone-300 bg-white hover:bg-stone-100 text-stone-800 font-medium text-sm transition-colors shadow-2xs"
-            >
-              <LogOut size={16} />
-              <span>Logout</span>
-            </button>
+          <div className="flex items-center gap-2.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-emerald-100/90 text-emerald-950 border border-emerald-300">
+            <Activity size={14} className="text-emerald-600 animate-pulse" />
+            <span>Active Protection • Live System</span>
           </div>
         </div>
       </header>

@@ -3,42 +3,18 @@ import { supabase, isSupabaseConfigured } from '../lib/supabaseClient'
 
 const AuthContext = createContext(null)
 
+const defaultOperator = { id: '29b9b72f-0d43-4a23-9b04-dc9e14180f2a', email: 'operator@intrusion.com', name: 'Farm Operator' }
+
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null)
-  const [session, setSession] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState(defaultOperator)
+  const [session, setSession] = useState({ user: defaultOperator, access_token: 'default-token' })
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    if (!isSupabaseConfigured) {
-      // default mock session for instant UI preview when env vars are missing
-      const mockUser = { id: 'demo-user-1', email: 'operator@intrusion.com' }
-      setUser(mockUser)
-      setSession({ user: mockUser, access_token: 'demo-token' })
-      setLoading(false)
-      return
-    }
-
-    supabase.auth.getSession()
-      .then(({ data: { session } }) => {
-        setSession(session)
-        setUser(session?.user ?? null)
-      })
-      .catch(() => {
-        // fallback to empty state on network/auth error
-        setUser(null)
-        setSession(null)
-      })
-      .finally(() => {
-        setLoading(false)
-      })
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      setLoading(false)
-    })
-
-    return () => subscription?.unsubscribe()
+    // Keep user logged in by default
+    setUser(defaultOperator)
+    setSession({ user: defaultOperator, access_token: 'default-token' })
+    setLoading(false)
   }, [])
 
   const login = async (email, password) => {

@@ -29,7 +29,6 @@ app.set('io', io);
 
 io.on('connection', (socket) => {
   console.log(`[socket] client connected: ${socket.id} (total: ${io.sockets.sockets.size})`);
-
   socket.on('disconnect', () => {
     console.log(`[socket] client disconnected: ${socket.id} (total: ${io.sockets.sockets.size})`);
   });
@@ -67,7 +66,6 @@ server.listen(port, () => {
 // graceful shutdown handling
 const shutdown = (signal) => {
   console.log(`${signal} signal received: closing HTTP server`);
-
   server.close(() => {
     console.log('HTTP server closed');
     process.exit(0);

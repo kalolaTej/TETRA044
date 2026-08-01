@@ -2,12 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Camera, RefreshCw, Radio, Filter, Video } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
-const INITIAL_CAMERAS = [
-  { id: 'cam_01', name: 'North Field Cam', zone: 'North Field', status: 'online', fps: 24, resolution: '1080p', last_ping: 'Just now' },
-  { id: 'cam_02', name: 'South Perimeter', zone: 'South Gate', status: 'online', fps: 30, resolution: '1080p', last_ping: '1m ago' },
-  { id: 'cam_03', name: 'East Livestock Barn', zone: 'East Barn', status: 'offline', fps: 0, resolution: '720p', last_ping: '18m ago' },
-  { id: 'cam_04', name: 'West Fence Driveway', zone: 'West Gate', status: 'online', fps: 25, resolution: '1080p', last_ping: 'Just now' },
-]
+const INITIAL_CAMERAS = []
 
 export default function Cameras() {
   const { session } = useAuth()
@@ -26,12 +21,13 @@ export default function Cameras() {
       const res = await fetch(`${backendUrl}/api/cameras`, { headers })
       if (res.ok) {
         const data = await res.json()
-        setCameras(data.cameras || data)
+        const items = data.data || data.cameras || (Array.isArray(data) ? data : [])
+        setCameras(items)
       } else {
-        setCameras(INITIAL_CAMERAS)
+        setCameras([])
       }
     } catch {
-      setCameras(INITIAL_CAMERAS)
+      setCameras([])
     } finally {
       setLoading(false)
       setRefreshing(false)
