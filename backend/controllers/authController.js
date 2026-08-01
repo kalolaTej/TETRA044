@@ -3,23 +3,27 @@ const supabase = require('../services/supabaseClient');
 // basic email regex validation helper
 const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
-const register = async (req, res) => {
+const register = async (req, res, next) => {
   try {
     const { name, email, password } = req.body;
 
-    if (!name || !email || !password) {
-      return res.status(400).json({ error: 'name, email, and password are required' });
+    if (!name || typeof name !== 'string' || !name.trim()) {
+      return res.status(400).json({ error: 'name is required' });
     }
 
-    if (!isValidEmail(email)) {
-      return res.status(400).json({ error: 'invalid email format' });
+    if (!email || !isValidEmail(email)) {
+      return res.status(400).json({ error: 'valid email is required' });
+    }
+
+    if (!password || typeof password !== 'string' || password.length < 6) {
+      return res.status(400).json({ error: 'password must be at least 6 characters long' });
     }
 
     // sign up user in supabase auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
-      email,
+      email: email.trim().toLowerCase(),
       password,
-      options: { data: { name } },
+      options: { data: { name: name.trim() } },
     });
 
     if (authError) {
@@ -34,7 +38,7 @@ const register = async (req, res) => {
     // insert matching record into users table
     const { error: dbError } = await supabase
       .from('users')
-      .insert([{ id: user.id, name, email }]);
+      .insert([{ id: user.id, name: name.trim(), email: email.trim().toLowerCase() }]);
 
     if (dbError) {
       return res.status(400).json({ error: dbError.message });
@@ -42,28 +46,28 @@ const register = async (req, res) => {
 
     return res.status(201).json({
       message: 'user registered successfully',
-      user: { id: user.id, name, email },
+      user: { id: user.id, name: name.trim(), email: email.trim().toLowerCase() },
     });
   } catch (err) {
-    return res.status(500).json({ error: 'internal server error during registration' });
+    next(err);
   }
 };
 
-const login = async (req, res) => {
+const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({ error: 'email and password are required' });
+    if (!email || !isValidEmail(email)) {
+      return res.status(400).json({ error: 'valid email is required' });
     }
 
-    if (!isValidEmail(email)) {
-      return res.status(400).json({ error: 'invalid email format' });
+    if (!password || typeof password !== 'string') {
+      return res.status(400).json({ error: 'password is required' });
     }
 
     // authenticate against supabase auth
     const { data, error } = await supabase.auth.signInWithPassword({
-      email,
+      email: email.trim().toLowerCase(),
       password,
     });
 
@@ -80,7 +84,7 @@ const login = async (req, res) => {
       accessToken: data.session.access_token,
     });
   } catch (err) {
-    return res.status(500).json({ error: 'internal server error during login' });
+    next(err);
   }
 };
 

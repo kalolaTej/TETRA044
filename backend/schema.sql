@@ -56,6 +56,15 @@ create table if not exists notifications (
   read boolean not null default false
 );
 
+-- fcm_tokens table for push notification device registration
+create table if not exists fcm_tokens (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  token text not null unique,
+  created_at timestamptz default now()
+);
+
 -- indexes for history filtering and timeline performance
 create index if not exists idx_detections_detected_at on detections (detected_at desc);
 create index if not exists idx_detections_camera_id on detections (camera_id);
+create index if not exists idx_fcm_tokens_user_id on fcm_tokens (user_id);
