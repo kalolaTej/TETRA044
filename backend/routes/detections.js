@@ -1,6 +1,8 @@
 const express = require('express');
 const multer = require('multer');
 const authMiddleware = require('../middleware/auth');
+const detectionRateLimiter = require('../middleware/rateLimiter');
+
 const {
   createDetection,
   getDetections,
@@ -15,8 +17,13 @@ const upload = multer({
 
 const router = express.Router();
 
-// unauthenticated POST endpoint for edge AI camera ingestion
-router.post('/detection', upload.single('image'), createDetection);
+// unauthenticated POST endpoint for edge AI camera ingestion with rate limiting
+router.post(
+  '/detection',
+  detectionRateLimiter,
+  upload.single('image'),
+  createDetection
+);
 
 // authenticated GET endpoints for detection logs
 router.get('/detections', authMiddleware, getDetections);

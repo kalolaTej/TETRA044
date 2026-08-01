@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const { Server } = require('socket.io');
+const errorHandler = require('./middleware/errorHandler');
 
 dotenv.config();
 
@@ -28,6 +29,7 @@ app.set('io', io);
 
 io.on('connection', (socket) => {
   console.log(`[socket] client connected: ${socket.id} (total: ${io.sockets.sockets.size})`);
+
   socket.on('disconnect', () => {
     console.log(`[socket] client disconnected: ${socket.id} (total: ${io.sockets.sockets.size})`);
   });
@@ -55,6 +57,9 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
+// centralized error handling middleware (must be mounted last)
+app.use(errorHandler);
+
 server.listen(port, () => {
   console.log(`server running on port ${port}`);
 });
@@ -62,6 +67,7 @@ server.listen(port, () => {
 // graceful shutdown handling
 const shutdown = (signal) => {
   console.log(`${signal} signal received: closing HTTP server`);
+
   server.close(() => {
     console.log('HTTP server closed');
     process.exit(0);
