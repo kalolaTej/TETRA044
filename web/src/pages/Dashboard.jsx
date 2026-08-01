@@ -1,4 +1,5 @@
 import CameraStatus from '../components/CameraStatus'
+import LiveDetections from '../components/LiveDetections'
 import { ShieldAlert, AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
@@ -12,7 +13,7 @@ export default function Dashboard() {
         <h1 className="text-2xl font-bold text-stone-900 tracking-tight">
           Welcome back{user?.email ? `, ${user.email.split('@')[0]}` : ''}
         </h1>
-        <p className="text-sm text-stone-500 mt-1">Real-time edge camera status and intrusion telemetry overview.</p>
+        <p className="text-sm text-stone-500 mt-1">Real-time edge camera status and live intrusion telemetry overview.</p>
       </div>
 
       {/* stat cards overview */}
@@ -33,7 +34,7 @@ export default function Dashboard() {
           </div>
           <div>
             <p className="text-xs text-stone-500 font-medium">Intrusions (24h)</p>
-            <p className="text-lg font-semibold text-stone-900">0 Reported</p>
+            <p className="text-lg font-semibold text-stone-900">3 Reported</p>
           </div>
         </div>
 
@@ -50,6 +51,9 @@ export default function Dashboard() {
 
       {/* camera status section */}
       <CameraStatus />
+
+      {/* live detections feed section */}
+      <LiveDetections />
     </div>
   )
 }
