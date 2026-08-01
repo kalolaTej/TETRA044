@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { ArrowLeft, MapPin, Camera, Clock, ShieldAlert, Volume2, Check } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import { getAnimalImage, ANIMAL_IMAGES } from '../lib/animalImages'
 
 const MOCK_DETAIL_DETECTIONS = {
   det_01: {
@@ -12,8 +13,7 @@ const MOCK_DETAIL_DETECTIONS = {
     camera_name: 'North Field Cam',
     zone: 'North Field',
     created_at: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
-    image_url: 'https://images.unsplash.com/photo-1546445317-29f4545f9d52?w=800&auto=format&fit=crop&q=80',
-    bbox: [120, 85, 450, 380]
+    image_url: ANIMAL_IMAGES.cow
   },
   det_02: {
     id: 'det_02',
@@ -23,8 +23,7 @@ const MOCK_DETAIL_DETECTIONS = {
     camera_name: 'South Perimeter',
     zone: 'South Gate',
     created_at: new Date(Date.now() - 14 * 60 * 1000).toISOString(),
-    image_url: 'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=800&auto=format&fit=crop&q=80',
-    bbox: [80, 110, 320, 290]
+    image_url: ANIMAL_IMAGES.dog
   },
   det_03: {
     id: 'det_03',
@@ -34,8 +33,7 @@ const MOCK_DETAIL_DETECTIONS = {
     camera_name: 'North Field Cam',
     zone: 'North Field',
     created_at: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
-    image_url: 'https://images.unsplash.com/photo-1530595467537-0b5996c41f2d?w=800&auto=format&fit=crop&q=80',
-    bbox: [150, 90, 480, 410]
+    image_url: ANIMAL_IMAGES.bear
   }
 }
 
@@ -59,7 +57,6 @@ export default function DetectionDetail() {
         const data = await res.json()
         setDetection(data.detection || data)
       } else {
-        // fallback to mock detail dictionary if endpoint is offline
         const mockItem = MOCK_DETAIL_DETECTIONS[id] || MOCK_DETAIL_DETECTIONS['det_01']
         setDetection(mockItem)
       }
@@ -85,22 +82,22 @@ export default function DetectionDetail() {
 
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto space-y-4">
-        <div className="h-6 w-32 bg-stone-200 rounded animate-pulse"></div>
-        <div className="h-96 bg-stone-200/60 rounded-xl animate-pulse"></div>
+      <div className="max-w-4xl mx-auto space-y-5">
+        <div className="h-7 w-40 bg-stone-200 rounded animate-shimmer"></div>
+        <div className="h-[420px] bg-stone-200/70 rounded-2xl animate-shimmer"></div>
       </div>
     )
   }
 
   if (notFound || !detection) {
     return (
-      <div className="max-w-xl mx-auto text-center py-16 bg-[#faf8f5] border border-stone-200 rounded-xl">
-        <ShieldAlert size={36} className="mx-auto text-stone-400 mb-3" />
-        <h2 className="text-xl font-bold text-stone-900">Detection Record Not Found</h2>
-        <p className="text-xs text-stone-500 mt-1 mb-6">The requested detection ID does not exist or was removed.</p>
+      <div className="max-w-xl mx-auto text-center py-20 bg-[#fcfbf7] border border-stone-300/80 rounded-2xl shadow-xs">
+        <ShieldAlert size={44} className="mx-auto text-stone-400 mb-4" />
+        <h2 className="text-2xl font-bold text-stone-900">Detection Record Not Found</h2>
+        <p className="text-sm text-stone-600 mt-2 mb-8 font-medium">The requested detection ID does not exist or was removed.</p>
         <Link
           to="/detections"
-          className="px-4 py-2 bg-stone-900 text-white rounded-lg text-xs font-medium hover:bg-stone-800 transition-colors"
+          className="px-5 py-3 bg-stone-900 text-white rounded-xl text-sm font-bold hover:bg-stone-800 transition-colors shadow-xs"
         >
           Return to Detection History
         </Link>
@@ -108,95 +105,100 @@ export default function DetectionDetail() {
     )
   }
 
+  const imgSrc = getAnimalImage(detection.animal, detection.image_url)
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* back navigation link */}
       <div>
         <Link
           to="/detections"
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-stone-600 hover:text-stone-900 transition-colors"
+          className="inline-flex items-center gap-2 text-sm font-bold text-stone-700 hover:text-amber-900 transition-colors bg-white px-4 py-2 rounded-xl border border-stone-300 shadow-2xs"
         >
-          <ArrowLeft size={16} />
+          <ArrowLeft size={18} />
           <span>Back to Detection History</span>
         </Link>
       </div>
 
       {/* siren toast notification */}
       {sirenToast && (
-        <div className="p-3.5 rounded-lg bg-amber-900 text-amber-50 text-xs font-medium shadow-md flex items-center justify-between animate-bounce">
-          <div className="flex items-center gap-2">
-            <Volume2 size={16} className="text-amber-400" />
+        <div className="p-4 rounded-xl bg-amber-900 text-amber-50 text-sm font-bold shadow-md flex items-center justify-between animate-bounce">
+          <div className="flex items-center gap-2.5">
+            <Volume2 size={20} className="text-amber-400" />
             <span>{sirenToast}</span>
           </div>
-          <Check size={14} className="text-amber-300" />
+          <Check size={18} className="text-amber-300" />
         </div>
       )}
 
       {/* main detail card */}
-      <div className="bg-[#faf8f5] border border-stone-200 rounded-xl overflow-hidden shadow-xs grid grid-cols-1 md:grid-cols-2 gap-0">
+      <div className="bg-[#fcfbf7] border border-stone-300/80 rounded-2xl overflow-hidden shadow-xs grid grid-cols-1 md:grid-cols-2 gap-0">
         {/* full-size image viewport */}
-        <div className="relative bg-stone-950 min-h-[320px] flex items-center justify-center p-2">
+        <div className="relative bg-stone-950 min-h-[340px] flex items-center justify-center p-3">
           <img
-            src={detection.image_url || 'https://images.unsplash.com/photo-1546445317-29f4545f9d52?w=800&auto=format&fit=crop&q=80'}
+            src={imgSrc}
             alt={detection.animal}
-            className="w-full h-full object-contain rounded-lg max-h-[460px]"
+            referrerPolicy="no-referrer"
+            className="w-full h-full object-contain rounded-xl max-h-[480px]"
+            onError={(e) => {
+              e.currentTarget.src = ANIMAL_IMAGES.cow
+            }}
           />
-          <div className="absolute bottom-4 left-4 bg-stone-900/80 backdrop-blur-xs px-3 py-1 rounded text-white text-xs font-medium">
-            Bounding box logged
+          <div className="absolute bottom-4 left-4 bg-stone-900/85 backdrop-blur-xs px-3.5 py-1.5 rounded-lg text-white text-xs font-semibold">
+            Bounding Box Annotations Saved
           </div>
         </div>
 
         {/* metadata panel */}
-        <div className="p-6 flex flex-col justify-between space-y-6">
-          <div className="space-y-4">
+        <div className="p-8 flex flex-col justify-between space-y-6">
+          <div className="space-y-5">
             <div className="flex items-start justify-between">
               <div>
-                <span className="text-xs uppercase tracking-wider font-semibold text-amber-800 bg-amber-100 px-2.5 py-1 rounded-md">
+                <span className="text-xs uppercase tracking-wider font-bold text-amber-900 bg-amber-100 px-3 py-1 rounded-md">
                   Intrusion Alert
                 </span>
-                <h1 className="text-2xl font-bold text-stone-900 capitalize mt-2">
+                <h1 className="text-3xl font-bold text-stone-900 capitalize mt-3">
                   {detection.animal} Detected
                 </h1>
               </div>
 
-              <span className="text-sm font-semibold text-amber-900 bg-amber-50 border border-amber-200 px-3 py-1 rounded-lg">
+              <span className="text-base font-bold text-amber-950 bg-amber-100/90 border border-amber-300 px-3.5 py-1.5 rounded-xl">
                 {detection.confidence}% confidence
               </span>
             </div>
 
-            <div className="pt-4 border-t border-stone-200/80 space-y-3 text-xs text-stone-700">
+            <div className="pt-5 border-t border-stone-300/80 space-y-4 text-sm text-stone-800">
               <div className="flex items-center justify-between">
-                <span className="text-stone-500 flex items-center gap-1.5">
-                  <MapPin size={14} /> Zone Name:
+                <span className="text-stone-600 font-medium flex items-center gap-2">
+                  <MapPin size={16} /> Zone Name:
                 </span>
-                <span className="font-semibold text-stone-900">{detection.zone || 'North Field'}</span>
+                <span className="font-bold text-stone-900 text-base">{detection.zone || 'North Field'}</span>
               </div>
 
               <div className="flex items-center justify-between">
-                <span className="text-stone-500 flex items-center gap-1.5">
-                  <Camera size={14} /> Camera Source:
+                <span className="text-stone-600 font-medium flex items-center gap-2">
+                  <Camera size={16} /> Camera Source:
                 </span>
-                <span className="font-semibold text-stone-900">{detection.camera_name || detection.camera_id}</span>
+                <span className="font-bold text-stone-900 text-base">{detection.camera_name || detection.camera_id}</span>
               </div>
 
               <div className="flex items-center justify-between">
-                <span className="text-stone-500 flex items-center gap-1.5">
-                  <Clock size={14} /> Timestamp:
+                <span className="text-stone-600 font-medium flex items-center gap-2">
+                  <Clock size={16} /> Timestamp:
                 </span>
-                <span className="font-semibold text-stone-900">
+                <span className="font-bold text-stone-900 text-sm">
                   {new Date(detection.created_at || Date.now()).toLocaleString()}
                 </span>
               </div>
             </div>
           </div>
 
-          {/* interactive siren trigger demo */}
-          <div className="pt-4 border-t border-stone-200/80">
+          <div className="pt-5 border-t border-stone-300/80">
             <button
               onClick={triggerSiren}
-              className="w-full py-2.5 px-4 bg-amber-700 hover:bg-amber-800 text-white font-medium text-xs rounded-lg transition-colors flex items-center justify-center gap-2 shadow-xs"
+              className="w-full py-3 px-5 bg-amber-700 hover:bg-amber-800 text-white font-bold text-sm rounded-xl transition-colors flex items-center justify-center gap-2.5 shadow-xs"
             >
-              <Volume2 size={16} />
+              <Volume2 size={18} />
               <span>Simulate Siren Deterrent</span>
             </button>
           </div>
