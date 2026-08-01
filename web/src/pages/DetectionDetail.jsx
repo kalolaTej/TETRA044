@@ -45,11 +45,46 @@ export default function DetectionDetail() {
   }, [fetchDetail])
 
   const triggerSiren = () => {
+    const animal = detection?.animal || 'pig'
     const zoneName = detection?.zone || 'Active Zone'
-    setSirenToast(`🚨 Siren activated in ${zoneName}! Dispatching deterrent sound...`)
+    const ip = localStorage.getItem('esp32_ip') || '192.168.1.150'
+    const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+
+    // 1. Play loud browser speaker siren
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext
+      if (AudioCtx) {
+        const ctx = new AudioCtx()
+        if (ctx.state === 'suspended') ctx.resume()
+        const osc = ctx.createOscillator()
+        const gain = ctx.createGain()
+        osc.type = 'sawtooth'
+        osc.frequency.setValueAtTime(800, ctx.currentTime)
+        osc.frequency.linearRampToValueAtTime(2400, ctx.currentTime + 0.3)
+        gain.gain.setValueAtTime(0.4, ctx.currentTime)
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 4)
+        osc.connect(gain)
+        gain.connect(ctx.destination)
+        osc.start()
+        osc.stop(ctx.currentTime + 4)
+      }
+    } catch (e) {
+      console.warn('Audio play warning:', e)
+    }
+
+    // 2. Dispatch HTTP trigger to ESP32 / Backend
+    fetch(`${backendUrl}/api/esp32/trigger`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ip, animal, duration: 5000 })
+    }).catch(() => {
+      fetch(`http://${ip}/trigger?animal=${encodeURIComponent(animal)}&duration=5000`).catch(() => {})
+    })
+
+    setSirenToast(`🚨 SIREN & LIGHT STROBE ACTIVATED in ${zoneName}! Dispatching deterrent sound...`)
     setTimeout(() => {
       setSirenToast(null)
-    }, 4000)
+    }, 5000)
   }
 
   if (loading) {

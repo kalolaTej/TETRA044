@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import CameraStatus from '../components/CameraStatus'
 import LiveDetections from '../components/LiveDetections'
+import DeterrentControl from '../components/DeterrentControl'
 import { ShieldAlert, AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
@@ -71,6 +72,9 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* hardware deterrent manual control panel */}
+      <DeterrentControl />
 
       {/* camera status section */}
       <CameraStatus />

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { Activity, ShieldAlert, ChevronRight, Clock, MapPin } from 'lucide-react'
+import { Activity, ShieldAlert, ChevronRight, Clock, MapPin, Zap } from 'lucide-react'
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { getAnimalImage, ANIMAL_IMAGES } from '../lib/animalImages'
@@ -179,7 +179,52 @@ export default function LiveDetections() {
                     </div>
                   </div>
 
-                  <ChevronRight size={18} className="text-stone-400 shrink-0" />
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        const ip = localStorage.getItem('esp32_ip') || '192.168.1.150'
+                        const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+                        
+                        try {
+                          const AudioCtx = window.AudioContext || window.webkitAudioContext
+                          if (AudioCtx) {
+                            const ctx = new AudioCtx()
+                            if (ctx.state === 'suspended') ctx.resume()
+                            const osc = ctx.createOscillator()
+                            const gain = ctx.createGain()
+                            osc.type = 'sawtooth'
+                            osc.frequency.setValueAtTime(900, ctx.currentTime)
+                            osc.frequency.linearRampToValueAtTime(2200, ctx.currentTime + 0.3)
+                            gain.gain.setValueAtTime(0.4, ctx.currentTime)
+                            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 3)
+                            osc.connect(gain)
+                            gain.connect(ctx.destination)
+                            osc.start()
+                            osc.stop(ctx.currentTime + 3)
+                          }
+                        } catch {}
+
+                        fetch(`${backendUrl}/api/esp32/trigger`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ ip, animal: item.animal, duration: 5000 })
+                        }).catch(() => {
+                          fetch(`http://${ip}/trigger?animal=${encodeURIComponent(item.animal)}&duration=5000`).catch(() => {})
+                        })
+                        alert(`🚨 HARDWARE DETERRENT ACTIVATED FOR ${item.animal.toUpperCase()}! (Light Strobe & Siren Fired)`)
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
+                      title="Trigger ESP32 Strobe & Sound for this animal"
+                    >
+                      <Zap size={14} className="text-red-600 animate-pulse" />
+                      <span>Deter Now</span>
+                    </button>
+
+                    <ChevronRight size={18} className="text-stone-400 shrink-0" />
+                  </div>
                 </div>
               </Link>
             )

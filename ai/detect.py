@@ -17,6 +17,7 @@ except ImportError:
     YOLO = None
 
 from config import load_config
+from esp32_controller import ESP32Controller
 
 infer_every_n = 1
 infer_size = 540
@@ -127,6 +128,7 @@ class Detector:
         self.cooldown = cooldown
         self.cfg = cfg
         self.out = out
+        self.esp32 = ESP32Controller(cfg)
 
         self._frame = None
         self._lock = threading.Lock()
@@ -204,10 +206,12 @@ class Detector:
             json.dump(meta, fp, indent=2)
 
         print(f"[saved] snapshot -> {jpg}")
+        self.esp32.trigger(name, conf)
         threading.Thread(target=_upload, args=(self.cfg, jpg, name, conf), daemon=True).start()
 
     def stop(self):
         self.stopped = True
+        self.esp32.close()
 
 def _upload(cfg, jpg, animal, conf):
     if cfg.get("dry_run"):
