@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-green: #10b981;
+  --color-brand-dark: #0f172a;
+  --color-alert-danger: #ef4444;
+  --color-alert-warning: #f59e0b;
+}
+
+:root {
+  color-scheme: dark;
+  background-color: #0f172a;
+  color: #f8fafc;
+}
