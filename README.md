@@ -1,37 +1,134 @@
-# animal intrusion system
+# 🛡️ Smart Farm Intrusion Detection System
 
-real-time animal intrusion detection system using edge ai, a central backend, supabase database, react web dashboard, and a flutter mobile app.
+A real-time AI-powered system that helps farmers protect their crops by detecting animal intrusions using computer vision. The system identifies animals from a live camera feed, sends instant alerts, and records intrusion events through a web dashboard.
 
-## project structure
+---
 
-- `ai/` - computer vision and edge detection models, inference scripts, and camera processing utilities.
-- `backend/` - node.js / express api handling alert events, notifications, camera telemetry, and database queries.
-- `web/` - react dashboard for live camera monitoring, intrusion logs, analytics, and device management.
-- `mobile/` - flutter application for real-time intrusion push notifications and on-the-go monitoring.
+## 📌 About the Project
 
-## architecture overview
+Crop damage caused by animals such as cows, buffaloes, goats, and wild pigs is a major problem for farmers. Manual monitoring is difficult, especially during the night.
+
+This project uses **YOLO** object detection to automatically detect animals entering farm boundaries. When an intrusion is detected, the system immediately alerts the farmer and stores the event for future monitoring.
+
+---
+
+## 📌 Features
+
+- Real-time camera monitoring
+- AI-based animal detection using YOLO
+- Instant intrusion alerts
+- Automatic event snapshot capture
+- Web dashboard for monitoring
+- Intrusion history and logs
+- Easy configuration using environment variables
+- Cloud database integration with Supabase
+
+---
+
+## 📌 Project Structure
 
 ```
-[ edge camera (ai/) ] ---> [ express api (backend/) ] <---> [ supabase db ]
-                                      |
-                 +--------------------+--------------------+
-                 |                                         |
-      [ react dashboard (web/) ]                  [ flutter app (mobile/) ]
+Smart-Farm-Intrusion-System/
+│
+├── edge/          # AI detection on edge device
+├── backend/       # REST API and database
+├── web/           # React dashboard
+└── README.md
 ```
 
-## tech stack
+---
 
-| component | technology | primary role |
-| --- | --- | --- |
-| edge / ai | python, opencv / yolo | animal detection & frame inference |
-| backend | node.js, express | api endpoints, event triggers, alerts |
-| database | supabase (postgresql) | event persistence, camera states, user auth |
-| web dashboard | react | monitoring ui, historical logs, settings |
-| mobile app | flutter | push notifications, live status checks |
+## 📌 Tech Stack
 
-## getting started
+### Frontend
+- React
+- Tailwind CSS
+- React Router
 
-1. clone the repository.
-2. copy `.env.example` in `ai/`, `backend/`, and `web/` to `.env` in their respective folders.
-3. fill in placeholder environment variables for local development.
-4. detailed build and run instructions will be added as each service is scaffolded.
+### Backend
+- Node.js
+- Express.js
+- TypeScript
+
+### AI
+- Python
+- YOLO11
+- OpenCV
+- Ultralytics
+
+### Database
+- Supabase
+
+---
+
+## 📌 Getting Started
+
+### Clone the repository
+
+```bash
+git clone https://github.com/kalolaTej/Smart-Farm-Intrusion-System.git
+cd Smart-Farm-Intrusion-System
+```
+
+### Install dependencies
+
+#### Backend
+
+```bash
+cd backend
+npm install
+```
+
+#### Web
+
+```bash
+cd web
+npm install
+```
+
+#### Edge
+
+```bash
+cd edge
+pip install -r requirements.txt
+```
+
+---
+
+## ▶️ Run the Project
+
+### Start Backend
+
+```bash
+npm run dev
+```
+
+### Start Web Dashboard
+
+```bash
+npm run dev
+```
+
+### Start Edge Detection
+
+```bash
+python detect.py
+```
+
+---
+
+## 📸 System Workflow
+
+1. Camera captures live video.
+2. YOLO detects animals.
+3. Detection is sent to the backend.
+4. Event is stored in Supabase.
+5. Dashboard displays the intrusion.
+6. Farmer receives an alert.
+
+
+---
+
+## 👥 Team - Crystals (TETRA044)
+
+---
