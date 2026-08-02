@@ -15,9 +15,9 @@ except ImportError:
 
 class ESP32Controller:
     """
-    Thread-safe ESP32 Deterrent Hardware Controller with Audio Fallback.
-    Triggers lights and acoustic frequency deterrents on ESP32 over Wi-Fi (HTTP) or USB (Serial).
-    If ESP32 IP is unreachable (e.g. testing Wokwi simulator), plays PC sound chime as a fallback.
+    Thread-safe ESP32 Deterrent Hardware Controller with Audio & Strobe Light Control.
+    Triggers loud sirens and high-brightness LED strobes on ESP32 over Wi-Fi (HTTP) or USB (Serial).
+    If ESP32 IP is unreachable, plays a loud alternating siren sound on PC speaker as fallback.
     """
     def __init__(self, config):
         self.enabled = config.get("esp32_enabled", True)
@@ -56,13 +56,13 @@ class ESP32Controller:
         thread.start()
 
     def _play_local_pc_sound(self, animal):
-        """PC Speaker siren sound fallback when testing without physical ESP32 connected."""
+        """Loud PC speaker siren sound fallback when physical ESP32 is not connected."""
         if winsound:
             try:
-                # Play alternating siren beep tones on PC speaker
-                for _ in range(3):
-                    winsound.Beep(1200, 150)
-                    winsound.Beep(800, 150)
+                # High-decibel alternating siren sweep (2600Hz <-> 1400Hz)
+                for _ in range(5):
+                    winsound.Beep(2600, 180) # Loud high frequency tone
+                    winsound.Beep(1400, 180) # Alternating low frequency tone
             except Exception:
                 pass
 
@@ -77,12 +77,12 @@ class ESP32Controller:
             try:
                 resp = requests.get(url, params=params, timeout=1.5)
                 if resp.status_code == 200:
-                    print(f"[esp32 http] 🚨 Deterrent triggered for '{animal}' on ESP32 ({self.ip})")
+                    print(f"[esp32 http] 🚨 Loud Siren & LED Strobe Triggered for '{animal}' on ESP32 ({self.ip})")
                 else:
                     print(f"[esp32 http warning] ESP32 status {resp.status_code}")
                     self._play_local_pc_sound(animal)
             except requests.RequestException:
-                print(f"[esp32 note] Could not reach ESP32 at http://{self.ip} (IP unreachable). Playing PC audio chime...")
+                print(f"[esp32 note] Could not reach ESP32 at http://{self.ip} (IP unreachable). Playing loud PC siren...")
                 self._play_local_pc_sound(animal)
 
         elif self.mode == "serial":

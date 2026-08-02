@@ -8,6 +8,9 @@ import Dashboard from './pages/Dashboard'
 import Cameras from './pages/Cameras'
 import Detections from './pages/Detections'
 import DetectionDetail from './pages/DetectionDetail'
+import Alerts from './pages/Alerts'
+import Reports from './pages/Reports'
+import Settings from './pages/Settings'
 import NotFound from './pages/NotFound'
 
 export default function App() {
@@ -15,9 +18,9 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          {/* public authentication routes redirected to dashboard */}
-          <Route path="/login" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/register" element={<Navigate to="/dashboard" replace />} />
+          {/* public authentication routes */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
 
           {/* protected dashboard routes */}
           <Route element={<ProtectedRoute />}>
@@ -27,6 +30,9 @@ export default function App() {
               <Route path="/cameras" element={<Cameras />} />
               <Route path="/detections" element={<Detections />} />
               <Route path="/detections/:id" element={<DetectionDetail />} />
+              <Route path="/alerts" element={<Alerts />} />
+              <Route path="/reports" element={<Reports />} />
+              <Route path="/settings" element={<Settings />} />
             </Route>
           </Route>
 

@@ -1,5 +1,6 @@
 const supabase = require('../services/supabaseClient');
 const { sendDetectionPush } = require('../services/firebase');
+const { getSystemSettings } = require('./settingsController');
 
 const createDetection = async (req, res) => {
   try {
@@ -141,7 +142,7 @@ const dispatchPushNotifications = async (cameraId, detection) => {
 
 const getDetections = async (req, res) => {
   try {
-    const { camera_id, camera, animal, limit: queryLimit, page: queryPage, offset: queryOffset } = req.query;
+    const { camera_id, camera, animal, min_confidence, limit: queryLimit, page: queryPage, offset: queryOffset } = req.query;
 
     const limit = parseInt(queryLimit, 10) > 0 ? Math.min(parseInt(queryLimit, 10), 100) : 20;
     let page = 1;
@@ -164,6 +165,13 @@ const getDetections = async (req, res) => {
 
     if (animal) {
       query = query.eq('animal', animal.toLowerCase());
+    }
+
+    // apply confidence threshold filter from request or global system settings
+    const settings = getSystemSettings();
+    const effectiveMinConf = min_confidence ? parseFloat(min_confidence) : settings.confidenceThreshold;
+    if (!isNaN(effectiveMinConf) && effectiveMinConf > 0) {
+      query = query.gte('confidence', effectiveMinConf);
     }
 
     query = query.order('detected_at', { ascending: false }).range(from, to);

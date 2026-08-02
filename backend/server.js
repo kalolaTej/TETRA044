@@ -12,6 +12,7 @@ const detectionRoutes = require('./routes/detections');
 const cameraRoutes = require('./routes/cameras');
 const farmRoutes = require('./routes/farms');
 const notificationRoutes = require('./routes/notifications');
+const settingsRoutes = require('./routes/settings');
 
 const app = express();
 const server = http.createServer(app);
@@ -50,6 +51,7 @@ app.use('/api', detectionRoutes);
 app.use('/api', cameraRoutes);
 app.use('/api', farmRoutes);
 app.use('/api', notificationRoutes);
+app.use('/api', settingsRoutes);
 
 // health check endpoint
 app.get('/health', (req, res) => {

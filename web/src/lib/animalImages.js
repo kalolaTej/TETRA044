@@ -1,4 +1,4 @@
-// real photographic image URLs for animal detection snapshots
+// real photographic image URLs for animal detection snapshots & camera streams
 
 export const ANIMAL_IMAGES = {
   cow: 'https://images.pexels.com/photos/422218/pexels-photo-422218.jpeg?auto=compress&cs=tinysrgb&w=800',
@@ -10,7 +10,12 @@ export const ANIMAL_IMAGES = {
 }
 
 export function getAnimalImage(animalName, providedUrl) {
-  if (providedUrl && typeof providedUrl === 'string' && providedUrl.startsWith('http') && !providedUrl.includes('placeholder')) {
+  if (
+    providedUrl &&
+    typeof providedUrl === 'string' &&
+    providedUrl.trim().length > 5 &&
+    !providedUrl.includes('placeholder.co')
+  ) {
     return providedUrl
   }
   const key = (animalName || '').toLowerCase()
