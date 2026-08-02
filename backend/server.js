@@ -53,7 +53,11 @@ app.use('/api', farmRoutes);
 app.use('/api', notificationRoutes);
 app.use('/api', settingsRoutes);
 
-// health check endpoint
+// health check endpoints
+app.get('/', (req, res) => {
+  res.json({ status: 'ok', message: 'Animal Intrusion Backend API is running' });
+});
+
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
