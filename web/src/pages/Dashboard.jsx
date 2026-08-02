@@ -48,6 +48,10 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchLiveMetrics()
+    const interval = setInterval(() => {
+      fetchLiveMetrics()
+    }, 3000)
+    return () => clearInterval(interval)
   }, [fetchLiveMetrics])
 
   // Dynamic metrics calculation from live backend API data

@@ -64,7 +64,14 @@ export default function LiveDetections() {
   useEffect(() => {
     fetchInitialDetections()
 
-    if (!isSupabaseConfigured) return
+    // automatic polling interval (every 3s) so new detection events pop up live
+    const interval = setInterval(() => {
+      fetchInitialDetections()
+    }, 3000)
+
+    if (!isSupabaseConfigured) {
+      return () => clearInterval(interval)
+    }
 
     let channel = null
     try {
@@ -84,6 +91,7 @@ export default function LiveDetections() {
     }
 
     return () => {
+      clearInterval(interval)
       try {
         if (channel) supabase.removeChannel(channel)
       } catch {
